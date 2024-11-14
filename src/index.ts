@@ -29,9 +29,7 @@ export function automergePatchesToMongoModifier(
 export function applyMongoModifier( doc: any,  modifier: MongoModifier ) {
     if ( modifier.$set )  {
         for ( const key in modifier.$set ) {
-            if ( modifier.$set[key] !== undefined ) {
-                set( doc, key, modifier.$set[key]);
-            }
+            set( doc, key, removeUndefined( modifier.$set[key]));
         }
     } 
     if ( modifier.$unset ) {
@@ -39,4 +37,20 @@ export function applyMongoModifier( doc: any,  modifier: MongoModifier ) {
             unset( doc, key );
         }
     }
+}
+
+export function removeUndefined( obj: any ) {
+    if (obj && typeof obj === 'object') {
+      Object.keys(obj).forEach((key) => {
+        if (obj[key] && typeof obj[key] === 'object') {
+          // Recurse into nested objects
+          removeUndefined(obj[key]);
+        }
+        // Delete property if it is undefined
+        if (obj[key] === undefined) {
+          delete obj[key];
+        }
+      });
+    }
+    return obj;
 }

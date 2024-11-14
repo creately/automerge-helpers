@@ -1,5 +1,5 @@
 import { Repo } from '@automerge/automerge-repo';
-import { applyMongoModifier, automergePatchesToMongoModifier } from '../src/index';
+import { applyMongoModifier, automergePatchesToMongoModifier, removeUndefined } from '../src/index';
 import { Sakota } from '@creately/sakota';
 import cloneDeep from 'lodash/cloneDeep';
 
@@ -11,7 +11,6 @@ describe('automergePatchesToMongoModifier function', () => {
             const vale = automergePatchesToMongoModifier( change.patches as any );
             const proxied = Sakota.create({} as any);
             proxied.__sakota__.mergeChanges( vale );
-            console.log( proxied.__sakota__.unwrap(), change.doc );
             expect( proxied.__sakota__.unwrap() ).toEqual( change.doc );
         });
     });
@@ -90,6 +89,14 @@ describe('applyMongoModifier function', () => {
                 },
             },
         },
+        {
+            obj: { shapes: { s1: {}, s2: {} }},
+            modifier: {
+                $set: {
+                    'shapes.s1': { name: undefined, some: 'value', undef: undefined },
+                },
+            },
+        },
     ].forEach(({ obj, modifier }, i ) => {
         it('should apply mongo modifier to automerge doc' + i, async () => {
             const doc = repo.create( cloneDeep( obj ));
@@ -99,11 +106,65 @@ describe('applyMongoModifier function', () => {
             const _doc = await doc.doc()
             const proxied = Sakota.create( cloneDeep( obj ));
             proxied.__sakota__.mergeChanges( modifier );
-            console.log( proxied.__sakota__.unwrap(), _doc );
             expect( proxied.__sakota__.unwrap() ).toEqual( _doc );
         });
     });
 
 });
+
+describe('removeUndefined function', () => {
+    [
+        {
+            input: {
+                a: 1,
+                b: undefined,
+                c: {
+                  d: 2,
+                  e: undefined,
+                  f: {
+                    g: 3,
+                    h: undefined
+                  }
+                }
+            },
+            output: { a: 1, c: { d: 2, f: { g: 3 } } }
+        },
+        {
+            input: {
+                a: null,
+                b: undefined,
+                c: {
+                  d: 0,
+                  e: undefined,
+                  f: {
+                    g: 3,
+                    h: undefined
+                  }
+                }
+            },
+            output: { a: null, c: { d: 0, f: { g: 3 } } }
+        },
+        {
+            input: {},
+            output: {},
+        },
+        {
+            input: { prop: undefined },
+            output: {},
+        },
+        {
+            input: undefined,
+            output: undefined,
+        },
+        {
+            input: { d: { e: undefined }},
+            output: { d: {} },
+        }
+    ].forEach(( obj, i ) => {
+        it('should remove udefined properties ' + i, async () => {
+            expect( removeUndefined( obj.input )).toEqual( obj.output );
+        });
+    });
+})
 
 
