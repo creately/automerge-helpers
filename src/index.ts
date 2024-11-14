@@ -29,7 +29,9 @@ export function automergePatchesToMongoModifier(
 export function applyMongoModifier( doc: any,  modifier: MongoModifier ) {
     if ( modifier.$set )  {
         for ( const key in modifier.$set ) {
-            set( doc, key, modifier.$set[key]);
+            if ( modifier.$set[key] !== undefined ) {
+                set( doc, key, modifier.$set[key]);
+            }
         }
     } 
     if ( modifier.$unset ) {
